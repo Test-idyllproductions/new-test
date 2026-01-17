@@ -103,13 +103,52 @@
     
     /* Theme Selector Z-Index Fix */
     .theme-selector-dropdown {
-      z-index: 99999 !important;
+      z-index: 9999999 !important;
       position: relative;
     }
     
     /* Ensure theme selector appears above all other elements */
     [data-theme] .theme-selector-dropdown {
-      z-index: 99999 !important;
+      z-index: 9999999 !important;
+    }
+    
+    /* Theme dropdown modal with highest priority */
+    .theme-dropdown-modal {
+      z-index: 9999999 !important;
+      position: fixed !important;
+      top: 70px !important;
+      right: 20px !important;
+    }
+    
+    /* Override any conflicting z-index values */
+    .theme-selector-dropdown .theme-dropdown-modal {
+      z-index: 9999999 !important;
+    }
+    
+    /* Ensure theme selector button also has high z-index */
+    .theme-selector-dropdown > button {
+      z-index: 9999998 !important;
+      position: relative;
+    }
+    
+    /* Force theme modal to be above everything */
+    .theme-dropdown-modal,
+    .theme-selector-dropdown .theme-dropdown-modal,
+    [class*="theme-dropdown-modal"] {
+      z-index: 9999999 !important;
+      position: fixed !important;
+    }
+    
+    /* Notifications dropdown with same high priority */
+    .notifications-dropdown-modal {
+      z-index: 2147483647 !important;
+      position: fixed !important;
+    }
+    
+    /* Ensure notifications appear above everything */
+    [class*="notifications-dropdown-modal"] {
+      z-index: 2147483647 !important;
+      position: fixed !important;
     }
     
     /* Animation keyframes for theme selector */
@@ -525,6 +564,104 @@
     
     .glow-border:focus-within {
       box-shadow: 0 0 0 1px var(--theme-primary, rgba(6, 182, 212, 0.5)), 0 0 20px var(--theme-primary, rgba(6, 182, 212, 0.15));
+    }
+    
+    /* Real-time Chart Animations */
+    @keyframes growUp {
+      0% {
+        height: 0%;
+        opacity: 0;
+        transform: scaleY(0);
+      }
+      50% {
+        opacity: 0.7;
+      }
+      100% {
+        opacity: 1;
+        transform: scaleY(1);
+      }
+    }
+    
+    @keyframes drawCircle {
+      0% {
+        stroke-dasharray: 0 251.2;
+        opacity: 0;
+      }
+      50% {
+        opacity: 0.8;
+      }
+      100% {
+        opacity: 1;
+      }
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.8;
+        transform: scale(1.02);
+      }
+    }
+    
+    @keyframes shimmer {
+      0% {
+        background-position: -200% 0;
+      }
+      100% {
+        background-position: 200% 0;
+      }
+    }
+    
+    /* Chart container animations */
+    .chart-container {
+      animation: fadeIn 0.8s ease-out;
+    }
+    
+    .chart-bar {
+      transform-origin: bottom;
+      animation: growUp 1.5s ease-out both;
+    }
+    
+    .chart-bar:hover {
+      animation: pulse 2s ease-in-out infinite;
+      filter: brightness(1.1);
+    }
+    
+    .donut-segment {
+      animation: drawCircle 2s ease-out forwards;
+    }
+    
+    .chart-legend-item {
+      animation: slideIn 0.5s ease-out both;
+    }
+    
+    /* Real-time data update animations */
+    .data-update {
+      animation: shimmer 2s linear infinite;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.1) 50%,
+        transparent 100%
+      );
+      background-size: 200% 100%;
+    }
+    
+    /* Interactive chart elements */
+    .chart-interactive:hover {
+      cursor: pointer;
+      transform: scale(1.05);
+      transition: transform 0.2s ease;
+    }
+    
+    /* Chart tooltip animations */
+    .chart-tooltip {
+      animation: bounceIn 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
     }
   </style>
 <script type="importmap">

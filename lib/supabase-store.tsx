@@ -48,6 +48,7 @@ interface SupabaseAppContextType extends SupabaseAppState {
   // Auth functions
   signUp: (email: string, password: string, username: string, role: UserRole) => Promise<{ error?: any }>;
   signIn: (email: string, password: string) => Promise<{ error?: any }>;
+  signInAsGuest: (role?: UserRole) => Promise<void>;
   signOut: () => Promise<void>;
   setCurrentUser: (user: User | null) => void;
   
@@ -606,6 +607,32 @@ export const SupabaseAppProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setView('landing');
   };
 
+  const signInAsGuest = async (role: UserRole = UserRole.EDITOR) => {
+    console.log('🎭 GUEST LOGIN START:', { role });
+    
+    // Create a mock guest user
+    const guestUser: User = {
+      id: 'guest-' + Date.now(),
+      email: role === UserRole.MANAGER ? 'guest.manager@demo.com' : 'guest.editor@demo.com',
+      username: role === UserRole.MANAGER ? 'Guest Manager' : 'Guest Editor',
+      role: role,
+      status: 'APPROVED' as any,
+      avatar: undefined,
+      theme: 'dark',
+      colorTheme: 'blue',
+      soundEnabled: true
+    };
+
+    console.log('🎭 Setting guest user:', guestUser);
+    setCurrentUser(guestUser);
+    setLoading(false);
+    
+    // Redirect to home
+    setView('home');
+    
+    console.log('✅ Guest login successful!');
+  };
+
   // UI functions
   const setView = useCallback((view: AppView) => {
     console.log('setView called with:', view);
@@ -1092,6 +1119,7 @@ export const SupabaseAppProvider: React.FC<{ children: React.ReactNode }> = ({ c
     // Auth functions
     signUp,
     signIn,
+    signInAsGuest,
     signOut,
     setCurrentUser,
     

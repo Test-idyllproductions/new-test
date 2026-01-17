@@ -1,5 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useSupabaseStore } from '../lib/supabase-store';
 import { useTheme } from '../lib/theme-context';
 import { Bell, X } from 'lucide-react';
@@ -87,22 +88,109 @@ const Header: React.FC = () => {
             )}
           </button>
 
-          {/* Notifications Panel */}
-          {showNotifications && (
-            <div className="absolute right-0 top-12 w-80 bg-card border border-border rounded-xl shadow-2xl overflow-hidden animate-fade-in z-50">
-              <div className="p-4 border-b border-border flex items-center justify-between bg-input">
-                <h3 className="font-bold text-primary text-sm">Notifications</h3>
+          {/* Notifications Panel - Rendered as Portal */}
+          {showNotifications && createPortal(
+            <div 
+              className="notifications-dropdown-modal"
+              style={{
+                position: 'fixed',
+                top: '70px',
+                right: '20px',
+                width: '320px',
+                background: theme === 'dark' 
+                  ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.4) 0%, rgba(30, 41, 59, 0.3) 100%)'
+                  : 'linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.15) 100%)',
+                backdropFilter: 'blur(20px) saturate(180%) brightness(110%)',
+                WebkitBackdropFilter: 'blur(20px) saturate(180%) brightness(110%)',
+                border: theme === 'dark' 
+                  ? '1px solid rgba(255, 255, 255, 0.2)' 
+                  : '1px solid rgba(255, 255, 255, 0.3)',
+                borderRadius: '16px',
+                boxShadow: theme === 'dark'
+                  ? '0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+                  : '0 8px 32px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.5)',
+                zIndex: 2147483647,
+                overflow: 'hidden',
+                animation: 'slideInScale 0.3s ease-out'
+              }}
+            >
+              {/* Glass overlay for extra effect */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: theme === 'dark'
+                    ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0.02) 100%)'
+                    : 'linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.1) 100%)',
+                  pointerEvents: 'none',
+                  borderRadius: '16px'
+                }}
+              />
+              
+              <div 
+                className="p-4 border-b flex items-center justify-between relative z-10"
+                style={{
+                  borderColor: theme === 'dark' 
+                    ? 'rgba(255, 255, 255, 0.1)' 
+                    : 'rgba(255, 255, 255, 0.3)',
+                  background: theme === 'dark' 
+                    ? 'rgba(255, 255, 255, 0.05)' 
+                    : 'rgba(255, 255, 255, 0.2)'
+                }}
+              >
+                <h3 
+                  className="font-bold text-sm"
+                  style={{ 
+                    color: theme === 'dark' ? '#ffffff' : '#1e293b',
+                    textShadow: theme === 'dark' ? '0 1px 2px rgba(0, 0, 0, 0.5)' : '0 1px 2px rgba(255, 255, 255, 0.8)'
+                  }}
+                >
+                  Notifications
+                </h3>
                 <button 
                   onClick={() => setShowNotifications(false)}
-                  className="p-1 text-muted hover:text-primary transition-colors"
+                  className="p-2 transition-all duration-200 rounded-lg"
+                  style={{ 
+                    color: theme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)',
+                    background: 'rgba(255, 255, 255, 0.1)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = theme === 'dark' ? '#ffffff' : '#000000';
+                    e.currentTarget.style.background = theme === 'dark' 
+                      ? 'rgba(255, 255, 255, 0.2)' 
+                      : 'rgba(255, 255, 255, 0.3)';
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = theme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)';
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
               
-              <div className="max-h-96 overflow-y-auto custom-scrollbar">
+              <div 
+                className="max-h-96 overflow-y-auto relative z-10"
+                style={{
+                  scrollbarWidth: 'thin',
+                  scrollbarColor: theme === 'dark' 
+                    ? 'rgba(255, 255, 255, 0.3) transparent' 
+                    : 'rgba(0, 0, 0, 0.3) transparent'
+                }}
+              >
                 {notifications.length === 0 ? (
-                  <div className="p-8 text-center text-muted text-sm">
+                  <div 
+                    className="p-8 text-center text-sm"
+                    style={{ 
+                      color: theme === 'dark' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.7)',
+                      textShadow: theme === 'dark' ? '0 1px 2px rgba(0, 0, 0, 0.5)' : '0 1px 2px rgba(255, 255, 255, 0.8)'
+                    }}
+                  >
                     No notifications yet
                   </div>
                 ) : (
@@ -110,22 +198,66 @@ const Header: React.FC = () => {
                     <button
                       key={notification.id}
                       onClick={() => handleNotificationClick(notification)}
-                      className={`w-full p-4 text-left hover:bg-hover transition-colors border-b border-border last:border-b-0 ${
-                        !notification.read ? 'bg-cyan-500/5' : ''
-                      }`}
+                      className="w-full p-4 text-left transition-all duration-200 border-b last:border-b-0"
+                      style={{
+                        background: !notification.read 
+                          ? (theme === 'dark' ? 'rgba(6, 182, 212, 0.15)' : 'rgba(6, 182, 212, 0.1)')
+                          : 'transparent',
+                        borderColor: theme === 'dark' 
+                          ? 'rgba(255, 255, 255, 0.08)' 
+                          : 'rgba(255, 255, 255, 0.2)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = theme === 'dark' 
+                          ? 'rgba(255, 255, 255, 0.1)' 
+                          : 'rgba(255, 255, 255, 0.3)';
+                        e.currentTarget.style.transform = 'translateX(4px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = !notification.read 
+                          ? (theme === 'dark' ? 'rgba(6, 182, 212, 0.15)' : 'rgba(6, 182, 212, 0.1)')
+                          : 'transparent';
+                        e.currentTarget.style.transform = 'translateX(0)';
+                      }}
                     >
                       <div className="flex items-start space-x-3">
-                        <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
-                          !notification.read ? 'bg-cyan-500' : 'bg-muted'
-                        }`} />
+                        <div 
+                          className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0"
+                          style={{
+                            background: !notification.read 
+                              ? 'linear-gradient(45deg, #06b6d4, #0891b2)' 
+                              : (theme === 'dark' ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)'),
+                            boxShadow: !notification.read 
+                              ? '0 0 12px rgba(6, 182, 212, 0.8), 0 0 4px rgba(6, 182, 212, 0.4)' 
+                              : 'none'
+                          }}
+                        />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-primary mb-1">
+                          <p 
+                            className="text-sm font-semibold mb-1"
+                            style={{ 
+                              color: theme === 'dark' ? '#ffffff' : '#1e293b',
+                              textShadow: theme === 'dark' ? '0 1px 2px rgba(0, 0, 0, 0.5)' : '0 1px 2px rgba(255, 255, 255, 0.8)'
+                            }}
+                          >
                             {notification.title}
                           </p>
-                          <p className="text-xs text-secondary line-clamp-2">
+                          <p 
+                            className="text-xs line-clamp-2"
+                            style={{ 
+                              color: theme === 'dark' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.7)',
+                              textShadow: theme === 'dark' ? '0 1px 2px rgba(0, 0, 0, 0.3)' : '0 1px 2px rgba(255, 255, 255, 0.6)'
+                            }}
+                          >
                             {notification.message}
                           </p>
-                          <p className="text-[10px] text-muted mt-2">
+                          <p 
+                            className="text-[10px] mt-2"
+                            style={{ 
+                              color: theme === 'dark' ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.5)',
+                              textShadow: theme === 'dark' ? '0 1px 2px rgba(0, 0, 0, 0.3)' : '0 1px 2px rgba(255, 255, 255, 0.6)'
+                            }}
+                          >
                             {new Date(notification.created_at).toLocaleString()}
                           </p>
                         </div>
@@ -134,7 +266,8 @@ const Header: React.FC = () => {
                   ))
                 )}
               </div>
-            </div>
+            </div>,
+            document.body
           )}
         </div>
 

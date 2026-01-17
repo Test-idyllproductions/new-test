@@ -8,7 +8,7 @@ import Logo from '../components/Logo';
 import Aurora from '../components/Aurora';
 
 const SupabaseAuthView: React.FC = () => {
-  const { signUp, signIn, currentView, setView, loading } = useSupabaseStore();
+  const { signUp, signIn, signInAsGuest, currentView, setView, loading } = useSupabaseStore();
   const { theme, colorTheme } = useTheme();
   const currentTheme = COLOR_THEMES[colorTheme];
   const { showDialog } = useDialog();
@@ -372,6 +372,74 @@ const SupabaseAuthView: React.FC = () => {
                 {isLogin ? "Don't have an account? Create one" : 'Already have an account? Login'}
               </button>
             </div>
+
+            {/* Guest Login Option */}
+            {isLogin && (
+              <div className="text-center mt-4">
+                <div className="flex items-center my-4">
+                  <div 
+                    className="flex-1 h-px"
+                    style={{ backgroundColor: theme === 'dark' ? '#374151' : '#e5e7eb' }}
+                  ></div>
+                  <span 
+                    className="px-4 text-xs font-medium"
+                    style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
+                  >
+                    OR
+                  </span>
+                  <div 
+                    className="flex-1 h-px"
+                    style={{ backgroundColor: theme === 'dark' ? '#374151' : '#e5e7eb' }}
+                  ></div>
+                </div>
+                
+                <button
+                  type="button"
+                  onClick={async () => {
+                    console.log('🎭 GUEST LOGIN CLICKED');
+                    await signInAsGuest(UserRole.EDITOR);
+                  }}
+                  className="w-full font-medium py-3 px-6 rounded-lg transition-all duration-200 border-2"
+                  style={{
+                    backgroundColor: 'transparent',
+                    borderColor: currentTheme.primary + '40',
+                    color: currentTheme.primary
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = currentTheme.primary + '10';
+                    e.currentTarget.style.borderColor = currentTheme.primary;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.borderColor = currentTheme.primary + '40';
+                  }}
+                >
+                  <span className="flex items-center justify-center space-x-2">
+                    <svg 
+                      width="16" 
+                      height="16" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                    >
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                      <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    <span>Continue as Guest</span>
+                  </span>
+                </button>
+                
+                <p 
+                  className="text-xs mt-2"
+                  style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
+                >
+                  Explore the workspace without logging in
+                </p>
+              </div>
+            )}
           </form>
         </div>
 

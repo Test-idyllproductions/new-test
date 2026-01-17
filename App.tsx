@@ -23,7 +23,7 @@ import ApprovalsView from './views/ApprovalsView';
 import SettingsView from './views/SettingsView';
 
 const NavigationHandler: React.FC = () => {
-  const { currentView, currentUser, setView, loading } = useSupabaseStore();
+  const { currentView, currentUser, setView, loading, signOut } = useSupabaseStore();
 
   // ROUTE GUARDS - Prevent unauthorized access
   useEffect(() => {
@@ -46,6 +46,21 @@ const NavigationHandler: React.FC = () => {
       if (!['pending', 'landing', 'login', 'signup', 'apply', 'manager-login'].includes(currentView)) {
         console.log('ROUTE GUARD: Pending user trying to access', currentView, '→ Redirecting to pending');
         setView('pending');
+      }
+      return;
+    }
+
+    // If user just logged in via manager-login, verify they are actually a manager
+    if (currentUser && currentView === 'manager-login') {
+      if (currentUser.role === UserRole.MANAGER) {
+        console.log('ROUTE GUARD: Manager successfully logged in via manager-login → Redirecting to home');
+        setView('home');
+      } else {
+        console.log('ROUTE GUARD: Non-manager tried to use manager-login → Signing out and redirecting');
+        // Sign out the non-manager user
+        signOut();
+        setView('landing');
+        // The error will be shown by the ManagerLoginView component
       }
       return;
     }

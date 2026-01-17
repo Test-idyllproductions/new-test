@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTheme, COLOR_THEMES, ColorTheme, ThemeMode, getDarkShade } from '../lib/theme-context';
 import { Palette, Sun, Moon } from 'lucide-react';
 
@@ -59,19 +60,27 @@ const ThemeSelector: React.FC = () => {
         Theme
       </button>
 
-      {/* Dropdown Card */}
-      {isOpen && (
+      {/* Dropdown Card - Rendered as Portal */}
+      {isOpen && createPortal(
         <div 
-          className="absolute top-full right-0 mt-2 w-72 rounded-2xl shadow-2xl p-6 transition-all duration-500 ease-out"
+          className="theme-dropdown-modal"
           style={{
+            position: 'fixed',
+            top: '70px',
+            right: '20px',
+            width: '320px',
             backgroundColor: theme === 'dark' 
-              ? `${getDarkShade(currentTheme.primary)}F0` // Much lighter opacity for better visibility
+              ? `${getDarkShade(currentTheme.primary)}F0`
               : 'rgba(255, 255, 255, 0.95)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            border: `2px solid ${currentTheme.primary}60`, // More visible border
+            border: `2px solid ${currentTheme.primary}60`,
             boxShadow: `0 20px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px ${currentTheme.primary}40`,
-            zIndex: 9999, // Very high z-index to appear above everything
+            zIndex: 2147483647, // Maximum possible z-index value
+            borderRadius: '16px',
+            padding: '24px',
+            maxHeight: 'calc(100vh - 100px)',
+            overflowY: 'auto',
             animation: isOpen ? 'slideInScale 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'slideOutScale 0.3s ease-in'
           }}
         >
@@ -94,12 +103,12 @@ const ThemeSelector: React.FC = () => {
             >
               Color Palette
             </h4>
-            <div className="grid grid-cols-5 gap-3">
+            <div className="grid grid-cols-5 gap-4 p-2">
               {Object.entries(COLOR_THEMES).map(([key, value]) => (
                 <button
                   key={key}
                   onClick={() => handleColorSelect(key as ColorTheme)}
-                  className={`w-12 h-12 rounded-xl border-3 transition-all duration-200 hover:scale-110 hover:shadow-lg relative overflow-hidden`}
+                  className={`w-14 h-14 rounded-xl border-3 transition-all duration-200 hover:scale-110 hover:shadow-lg relative overflow-hidden flex-shrink-0`}
                   style={{
                     backgroundColor: value.primary,
                     borderColor: colorTheme === key 
@@ -114,7 +123,7 @@ const ThemeSelector: React.FC = () => {
                   {colorTheme === key && (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div 
-                        className="w-3 h-3 rounded-full border-2 border-white"
+                        className="w-4 h-4 rounded-full border-2 border-white"
                         style={{ backgroundColor: 'rgba(255, 255, 255, 0.9)' }}
                       ></div>
                     </div>
@@ -213,7 +222,8 @@ const ThemeSelector: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

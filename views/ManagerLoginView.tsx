@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSupabaseStore } from '../lib/supabase-store';
 import { useTheme, COLOR_THEMES, BASE_COLORS } from '../lib/theme-context';
 import { useDialog } from '../lib/dialog-context';
@@ -8,7 +8,7 @@ import Logo from '../components/Logo';
 import Aurora from '../components/Aurora';
 
 const ManagerLoginView: React.FC = () => {
-  const { signIn, setView, loading } = useSupabaseStore();
+  const { signIn, signInAsGuest, setView, loading, currentUser } = useSupabaseStore();
   const { theme, colorTheme } = useTheme();
   const currentTheme = COLOR_THEMES[colorTheme];
   const { showDialog } = useDialog();
@@ -19,6 +19,25 @@ const ManagerLoginView: React.FC = () => {
   });
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Handle case where user successfully logs in but is not a manager
+  useEffect(() => {
+    if (currentUser && currentUser.role !== UserRole.MANAGER) {
+      console.log('🔴 NON-MANAGER DETECTED IN MANAGER LOGIN:', currentUser.role);
+      showDialog({
+        type: 'error',
+        title: 'Access Denied',
+        message: 'This login is for managers only. Please use the regular login if you are an editor.',
+        actions: [
+          { label: 'Go to Editor Login', onClick: () => setView('login'), variant: 'primary' },
+          { label: 'Back to Home', onClick: () => setView('landing'), variant: 'secondary' }
+        ]
+      });
+    } else if (currentUser && currentUser.role === UserRole.MANAGER) {
+      console.log('✅ MANAGER DETECTED - Login successful!');
+      // Manager login successful - let the route guard handle the redirect
+    }
+  }, [currentUser, showDialog, setView]);
 
   // Generate theme-based color stops for Aurora
   const getAuroraColors = () => {
@@ -45,46 +64,17 @@ const ManagerLoginView: React.FC = () => {
 
     try {
       console.log('🔵 Calling signIn for manager...');
-      const { error, user } = await signIn(formData.email, formData.password);
-      console.log('🔵 signIn response:', { error: error?.message || 'none', userRole: user?.role });
+      const { error } = await signIn(formData.email, formData.password);
+      console.log('🔵 signIn response:', { error: error?.message || 'none' });
       
       if (error) {
         console.log('🔴 MANAGER LOGIN ERROR:', error.message);
-        
-        if (error.message?.includes('Invalid login credentials') || 
-            error.message?.includes('Invalid email or password') ||
-            error.message?.includes('Email not confirmed')) {
-          showDialog({
-            type: 'error',
-            title: 'Manager Login Failed',
-            message: 'Invalid manager credentials. Please check your email and password.',
-            actions: [
-              { label: 'Try Again', onClick: () => {}, variant: 'primary' },
-              { label: 'Back to Home', onClick: () => setView('landing'), variant: 'secondary' }
-            ]
-          });
-        } else {
-          setError(error.message);
-        }
-      } else if (user && user.role !== UserRole.MANAGER) {
-        // User logged in successfully but is not a manager
-        console.log('🔴 NON-MANAGER TRYING TO ACCESS MANAGER LOGIN:', user.role);
-        showDialog({
-          type: 'error',
-          title: 'Access Denied',
-          message: 'This login is for managers only. Please use the regular login if you are an editor.',
-          actions: [
-            { label: 'Go to Editor Login', onClick: () => setView('login'), variant: 'primary' },
-            { label: 'Back to Home', onClick: () => setView('landing'), variant: 'secondary' }
-          ]
-        });
-        // Sign out the non-manager user
-        // await signOut(); // You might need to implement this
+        setError(error.message);
       } else {
         console.log('✅ Manager login successful, waiting for redirect...');
-        // Success! The store will handle redirect via useEffect
+        // Success! The store will handle redirect and role verification via useEffect
       }
-      console.log('🔵 MANAGER LOGIN END');
+      console.log('� MANAGER LOGIN END');
     } catch (err: any) {
       console.log('🔴 CATCH ERROR:', err.message || err);
       setError(err.message || 'An error occurred');
@@ -340,6 +330,73 @@ const ManagerLoginView: React.FC = () => {
               >
                 Are you an editor? Login here instead
               </button>
+            </div>
+
+            {/* Guest Login Option */}
+            <div className="text-center mt-4">
+              <div className="flex items-center my-4">
+                <div 
+                  className="flex-1 h-px"
+                  style={{ backgroundColor: theme === 'dark' ? '#374151' : '#e5e7eb' }}
+                ></div>
+                <span 
+                  className="px-4 text-xs font-medium"
+                  style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
+                >
+                  OR
+                </span>
+                <div 
+                  className="flex-1 h-px"
+                  style={{ backgroundColor: theme === 'dark' ? '#374151' : '#e5e7eb' }}
+                ></div>
+              </div>
+              
+              <button
+                type="button"
+                onClick={async () => {
+                  console.log('🎭 GUEST MANAGER LOGIN CLICKED');
+                  await signInAsGuest(UserRole.MANAGER);
+                }}
+                className="w-full font-medium py-3 px-6 rounded-lg transition-all duration-200 border-2"
+                style={{
+                  backgroundColor: 'transparent',
+                  borderColor: currentTheme.primary + '40',
+                  color: currentTheme.primary
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = currentTheme.primary + '10';
+                  e.currentTarget.style.borderColor = currentTheme.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.borderColor = currentTheme.primary + '40';
+                }}
+              >
+                <span className="flex items-center justify-center space-x-2">
+                  <svg 
+                    width="16" 
+                    height="16" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  >
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="m22 2-5 10-5-5 10-5z"/>
+                  </svg>
+                  <span>Continue as Guest Manager</span>
+                </span>
+              </button>
+              
+              <p 
+                className="text-xs mt-2"
+                style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
+              >
+                Explore manager features without logging in
+              </p>
             </div>
           </form>
         </div>

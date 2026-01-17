@@ -54,16 +54,20 @@ const Sidebar: React.FC = () => {
           <button
             key={item.view}
             onClick={() => setView(item.view)}
-            className={`sidebar-item w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-all duration-200 group ${
+            className={`sidebar-item w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-200 group ${
               currentView === item.view 
                 ? 'bg-cyan-500/10 text-cyan-400 active' 
                 : 'text-secondary hover:bg-hover hover:text-primary'
             }`}
           >
-            <item.icon className="w-5 h-5 flex-shrink-0" />
-            <span className="font-medium text-sm">{item.label}</span>
-            <ChevronRight className={`w-4 h-4 ml-auto transition-transform duration-200 ${
-              currentView === item.view ? 'rotate-90' : 'group-hover:translate-x-1'
+            <div className="flex items-center space-x-3">
+              <item.icon className="w-5 h-5 flex-shrink-0" />
+              <span className="font-medium text-sm text-left">{item.label}</span>
+            </div>
+            <ChevronRight className={`w-4 h-4 transition-all duration-200 flex-shrink-0 ${
+              currentView === item.view 
+                ? 'rotate-90 text-cyan-400' 
+                : 'text-secondary group-hover:text-primary group-hover:translate-x-1'
             }`} />
           </button>
         ))}
@@ -74,23 +78,33 @@ const Sidebar: React.FC = () => {
           <button
             key={item.view}
             onClick={() => setView(item.view)}
-            className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg transition-all duration-200 group ${
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-200 group ${
               currentView === item.view 
                 ? 'bg-cyan-500/10 text-cyan-400' 
                 : 'text-secondary hover:bg-hover hover:text-primary'
             }`}
           >
-            <item.icon className="w-5 h-5" />
-            <span className="font-medium text-sm">{item.label}</span>
+            <div className="flex items-center space-x-3">
+              <item.icon className="w-5 h-5 flex-shrink-0" />
+              <span className="font-medium text-sm text-left">{item.label}</span>
+            </div>
+            <ChevronRight className={`w-4 h-4 transition-all duration-200 flex-shrink-0 ${
+              currentView === item.view 
+                ? 'rotate-90 text-cyan-400' 
+                : 'text-secondary group-hover:text-primary group-hover:translate-x-1'
+            }`} />
           </button>
         ))}
         
         <button
           onClick={handleLogout}
-          className="w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-secondary hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 group"
+          className="w-full flex items-center justify-between px-4 py-3 rounded-lg text-secondary hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 group"
         >
-          <LogOut className="w-5 h-5" />
-          <span className="font-medium text-sm">Logout</span>
+          <div className="flex items-center space-x-3">
+            <LogOut className="w-5 h-5 flex-shrink-0" />
+            <span className="font-medium text-sm text-left">Logout</span>
+          </div>
+          <ChevronRight className="w-4 h-4 transition-all duration-200 flex-shrink-0 text-secondary group-hover:text-red-400 group-hover:translate-x-1" />
         </button>
       </div>
     </aside>
