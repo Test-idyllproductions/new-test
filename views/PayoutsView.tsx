@@ -4,7 +4,6 @@ import { useDialog } from '../lib/dialog-context';
 import { useTheme, COLOR_THEMES } from '../lib/theme-context';
 import { UserRole, PayoutStatus, PayoutRecord, UserStatus } from '../types';
 import { Plus, DollarSign, ExternalLink, Save, X, Trash2 } from 'lucide-react';
-import TableCreationModal from '../components/TableCreationModal';
 
 const PayoutsView: React.FC = () => {
   // VERSION: 2025-01-14-16:05 - FORCE RELOAD
@@ -17,9 +16,7 @@ const PayoutsView: React.FC = () => {
   const currentTheme = COLOR_THEMES[colorTheme];
   
   const isManager = currentUser?.role === UserRole.MANAGER;
-  const [selectedTableId, setSelectedTableId] = useState<string>('');
   const [selectedUserId, setSelectedUserId] = useState<string>('all');
-  const [showTableModal, setShowTableModal] = useState(false);
   const [editingRecords, setEditingRecords] = useState<Record<string, Partial<PayoutRecord>>>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
@@ -33,15 +30,9 @@ const PayoutsView: React.FC = () => {
     assignedTo: ''
   });
 
-  // Initialize selectedTableId
-  useEffect(() => {
-    if (payoutTables.length > 0 && !selectedTableId) {
-      setSelectedTableId(payoutTables[0].id);
-    }
-  }, [payoutTables, selectedTableId]);
-
-  const selectedTable = payoutTables.find(t => t.id === selectedTableId);
-  const tableRecords = payoutRecords.filter(r => r.tableId === selectedTableId);
+  // Use default table (first available or all records)
+  const defaultTable = payoutTables.length > 0 ? payoutTables[0] : null;
+  const tableRecords = payoutRecords; // Show all records instead of filtering by table
 
   // Filter records based on user selection and role
   const visibleRecords = (() => {
@@ -67,8 +58,7 @@ const PayoutsView: React.FC = () => {
     deadline?: string;
   }) => {
     try {
-      const newTableId = await createPayoutTable(tableData);
-      setSelectedTableId(newTableId);
+      await createPayoutTable(tableData);
     } catch (error) {
       console.error('Error creating table:', error);
       throw error;
@@ -76,7 +66,7 @@ const PayoutsView: React.FC = () => {
   };
 
   const handleCreatePayout = async () => {
-    if (!selectedTable || !newPayout.projectName || !newPayout.assignedTo) {
+    if (!newPayout.projectName || !newPayout.assignedTo) {
       showDialog({
         type: 'warning',
         title: 'Missing Information',
@@ -84,9 +74,33 @@ const PayoutsView: React.FC = () => {
       });
       return;
     }
+
+    // Use default table or create one
+    let tableId = defaultTable?.id;
+    if (!tableId && isManager) {
+      // Create default table if none exists
+      try {
+        tableId = await createPayoutTable({
+          name: 'Main Payouts',
+          description: 'Default payout management table',
+          priority: 'medium'
+        });
+      } catch (error) {
+        console.error('Error creating default table:', error);
+      }
+    }
+
+    if (!tableId) {
+      showDialog({
+        type: 'error',
+        title: 'Error',
+        message: 'No table available for payout creation'
+      });
+      return;
+    }
     
     const payoutData: Omit<PayoutRecord, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'> = {
-      tableId: selectedTableId,
+      tableId: tableId,
       projectName: newPayout.projectName,
       projectLink: newPayout.projectLink,
       amount: newPayout.amount,
@@ -95,7 +109,7 @@ const PayoutsView: React.FC = () => {
     };
     
     try {
-      await addPayoutRecord(selectedTableId, payoutData);
+      await addPayoutRecord(tableId, payoutData);
       setShowCreateModal(false);
       setNewPayout({
         projectName: '',
@@ -176,19 +190,6 @@ const PayoutsView: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-4">
           <h2 className="text-2xl font-bold text-primary">Payout Management</h2>
-          
-          {/* Table Selector */}
-          {payoutTables.length > 0 && (
-            <select
-              value={selectedTableId}
-              onChange={(e) => setSelectedTableId(e.target.value)}
-              className="bg-input border border-border px-4 py-2 rounded-lg text-sm font-medium text-primary hover:border-cyan-500 transition-colors"
-            >
-              {payoutTables.map(table => (
-                <option key={table.id} value={table.id}>{table.name}</option>
-              ))}
-            </select>
-          )}
 
           {/* User Selector (Manager only) */}
           {isManager && (
@@ -204,18 +205,9 @@ const PayoutsView: React.FC = () => {
             </select>
           )}
 
-          {isManager && (
-            <button
-              onClick={() => setShowTableModal(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-input hover:bg-hover border border-border text-primary rounded-lg transition-all text-sm font-medium"
-            >
-              <Plus className="w-4 h-4" />
-              <span>New Table</span>
-            </button>
-          )}
         </div>
 
-        {isManager && selectedTable && (
+        {isManager && (
           <button
             onClick={() => setShowCreateModal(true)}
             className="flex items-center space-x-2 px-6 py-3 rounded-lg transition-all text-sm font-bold shadow-lg"
@@ -494,15 +486,6 @@ const PayoutsView: React.FC = () => {
           </button>
         </div>
       )}
-
-      {/* Table Creation Modal */}
-      <TableCreationModal
-        isOpen={showTableModal}
-        onClose={() => setShowTableModal(false)}
-        onSubmit={handleCreateTable}
-        title="Create New Payout Table"
-        type="payout"
-      />
     </div>
   );
 };

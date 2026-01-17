@@ -4,7 +4,6 @@ import { useDialog } from '../lib/dialog-context';
 import { useTheme, COLOR_THEMES } from '../lib/theme-context';
 import { UserRole, TaskStatus, TaskManagementRecord, UserStatus } from '../types';
 import { Plus, Trash2, Save, X, ExternalLink, Edit2 } from 'lucide-react';
-import TableCreationModal from '../components/TableCreationModal';
 
 const SupabaseTasksView: React.FC = () => {
   // VERSION: 2025-01-14-16:05 - FORCE RELOAD
@@ -17,9 +16,7 @@ const SupabaseTasksView: React.FC = () => {
   const currentTheme = COLOR_THEMES[colorTheme];
   
   const isManager = currentUser?.role === UserRole.MANAGER;
-  const [selectedTableId, setSelectedTableId] = useState<string>('');
   const [selectedUserId, setSelectedUserId] = useState<string>('all');
-  const [showTableModal, setShowTableModal] = useState(false);
   const [editingRecords, setEditingRecords] = useState<Record<string, Partial<TaskManagementRecord>>>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
@@ -34,15 +31,9 @@ const SupabaseTasksView: React.FC = () => {
     editedFileLink: ''
   });
 
-  // Initialize selectedTableId when tables are loaded
-  useEffect(() => {
-    if (taskTables.length > 0 && !selectedTableId) {
-      setSelectedTableId(taskTables[0].id);
-    }
-  }, [taskTables, selectedTableId]);
-
-  const selectedTable = taskTables.find(t => t.id === selectedTableId);
-  const tableRecords = taskRecords.filter(r => r.tableId === selectedTableId);
+  // Use default table (first available or all records)
+  const defaultTable = taskTables.length > 0 ? taskTables[0] : null;
+  const tableRecords = taskRecords; // Show all records instead of filtering by table
 
   // Filter records based on user selection and role
   const visibleRecords = (() => {
@@ -68,8 +59,7 @@ const SupabaseTasksView: React.FC = () => {
     deadline?: string;
   }) => {
     try {
-      const newTableId = await createTaskTable(tableData);
-      setSelectedTableId(newTableId);
+      await createTaskTable(tableData);
     } catch (error) {
       console.error('Error creating table:', error);
       throw error;
@@ -77,7 +67,7 @@ const SupabaseTasksView: React.FC = () => {
   };
 
   const handleCreateTask = async () => {
-    if (!selectedTable || !newTask.taskName || !newTask.assignedTo) {
+    if (!newTask.taskName || !newTask.assignedTo) {
       showDialog({
         type: 'warning',
         title: 'Missing Information',
@@ -85,11 +75,35 @@ const SupabaseTasksView: React.FC = () => {
       });
       return;
     }
+
+    // Use default table or create one
+    let tableId = defaultTable?.id;
+    if (!tableId && isManager) {
+      // Create default table if none exists
+      try {
+        tableId = await createTaskTable({
+          name: 'Main Tasks',
+          description: 'Default task management table',
+          priority: 'medium'
+        });
+      } catch (error) {
+        console.error('Error creating default table:', error);
+      }
+    }
+
+    if (!tableId) {
+      showDialog({
+        type: 'error',
+        title: 'Error',
+        message: 'No table available for task creation'
+      });
+      return;
+    }
     
     const taskNumber = `T${String(tableRecords.length + 1).padStart(3, '0')}`;
     
     const taskData: Omit<TaskManagementRecord, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'> = {
-      tableId: selectedTableId,
+      tableId: tableId,
       taskNumber,
       taskName: newTask.taskName,
       deadline: newTask.deadline || new Date().toISOString().split('T')[0],
@@ -101,7 +115,7 @@ const SupabaseTasksView: React.FC = () => {
     };
     
     try {
-      await addTaskRecord(selectedTableId, taskData);
+      await addTaskRecord(tableId, taskData);
       setShowCreateModal(false);
       setNewTask({
         taskName: '',
@@ -185,19 +199,6 @@ const SupabaseTasksView: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
         <div className="flex flex-wrap items-center gap-4">
           <h2 className="text-2xl font-bold text-primary">Tasks Management</h2>
-          
-          {/* Table Selector */}
-          {taskTables.length > 0 && (
-            <select
-              value={selectedTableId}
-              onChange={(e) => setSelectedTableId(e.target.value)}
-              className="bg-input border border-border px-4 py-2 rounded-lg text-sm font-medium text-primary hover:border-cyan-500 transition-colors"
-            >
-              {taskTables.map(table => (
-                <option key={table.id} value={table.id}>{table.name}</option>
-              ))}
-            </select>
-          )}
 
           {/* User Selector (Manager only) */}
           {isManager && (
@@ -212,39 +213,9 @@ const SupabaseTasksView: React.FC = () => {
               ))}
             </select>
           )}
-
-          {isManager && (
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setShowTableModal(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-input hover:bg-hover border border-border text-primary rounded-lg transition-all text-sm font-medium"
-              >
-                <Plus className="w-4 h-4" />
-                <span>New Table</span>
-              </button>
-              {selectedTable && taskTables.length > 1 && (
-                <button
-                  onClick={async () => {
-                    if (confirm(`Delete table "${selectedTable.name}"? This will delete all tasks.`)) {
-                      try {
-                        await deleteTaskTable(selectedTableId);
-                        setSelectedTableId(taskTables.find(t => t.id !== selectedTableId)?.id || '');
-                      } catch (error) {
-                        console.error('Error deleting table:', error);
-                      }
-                    }
-                  }}
-                  className="flex items-center space-x-2 px-4 py-2 bg-red-600/10 hover:bg-red-600/20 border border-red-500/30 text-red-400 rounded-lg transition-all text-sm font-medium"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>Delete Table</span>
-                </button>
-              )}
-            </div>
-          )}
         </div>
 
-        {isManager && selectedTable && (
+        {isManager && (
           <button
             onClick={() => setShowCreateModal(true)}
             className="flex items-center space-x-2 px-6 py-3 rounded-lg transition-all text-sm font-bold shadow-lg"
@@ -570,15 +541,6 @@ const SupabaseTasksView: React.FC = () => {
           </button>
         </div>
       )}
-
-      {/* Table Creation Modal */}
-      <TableCreationModal
-        isOpen={showTableModal}
-        onClose={() => setShowTableModal(false)}
-        onSubmit={handleCreateTable}
-        title="Create New Task Table"
-        type="task"
-      />
     </div>
   );
 };
