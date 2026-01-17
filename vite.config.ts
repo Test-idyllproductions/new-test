@@ -2,10 +2,14 @@ import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
     const env = loadEnv(mode, '.', '');
+    
+    // Use base path only for GitHub Pages build, not for local development
+    const base = command === 'build' && mode === 'production' ? '/new-test/' : '/';
+    
     return {
-      base: '/new-test/', // GitHub Pages base path
+      base: base,
       server: {
         port: 3001,
         host: '0.0.0.0',
