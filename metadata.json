@@ -1,0 +1,9 @@
+
+{
+  "name": "Idyll Productions Workspace",
+  "description": "A premium, blue-accented internal production operating system for managing tasks, meetings, and payouts with role-based access control.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
