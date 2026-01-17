@@ -4,6 +4,7 @@ import { useDialog } from '../lib/dialog-context';
 import { useTheme, COLOR_THEMES } from '../lib/theme-context';
 import { UserRole, PayoutStatus, PayoutRecord, UserStatus } from '../types';
 import { Plus, DollarSign, ExternalLink, Save, X, Trash2 } from 'lucide-react';
+import TableCreationModal from '../components/TableCreationModal';
 
 const PayoutsView: React.FC = () => {
   // VERSION: 2025-01-14-16:05 - FORCE RELOAD
@@ -18,8 +19,7 @@ const PayoutsView: React.FC = () => {
   const isManager = currentUser?.role === UserRole.MANAGER;
   const [selectedTableId, setSelectedTableId] = useState<string>('');
   const [selectedUserId, setSelectedUserId] = useState<string>('all');
-  const [isCreatingTable, setIsCreatingTable] = useState(false);
-  const [newTableName, setNewTableName] = useState('');
+  const [showTableModal, setShowTableModal] = useState(false);
   const [editingRecords, setEditingRecords] = useState<Record<string, Partial<PayoutRecord>>>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
@@ -58,16 +58,20 @@ const PayoutsView: React.FC = () => {
     return filtered;
   })();
 
-  const handleCreateTable = async () => {
-    if (newTableName.trim()) {
-      try {
-        const newTableId = await createPayoutTable(newTableName.trim());
-        setSelectedTableId(newTableId);
-        setNewTableName('');
-        setIsCreatingTable(false);
-      } catch (error) {
-        console.error('Error creating table:', error);
-      }
+  const handleCreateTable = async (tableData: {
+    name: string;
+    description?: string;
+    budget?: number;
+    assignedUsers?: string[];
+    priority?: 'low' | 'medium' | 'high';
+    deadline?: string;
+  }) => {
+    try {
+      const newTableId = await createPayoutTable(tableData);
+      setSelectedTableId(newTableId);
+    } catch (error) {
+      console.error('Error creating table:', error);
+      throw error;
     }
   };
 
@@ -201,48 +205,13 @@ const PayoutsView: React.FC = () => {
           )}
 
           {isManager && (
-            <>
-              {isCreatingTable ? (
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="text"
-                    value={newTableName}
-                    onChange={(e) => setNewTableName(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleCreateTable()}
-                    placeholder="Table name..."
-                    className="bg-input border border-cyan-500 px-3 py-2 rounded-lg text-sm text-primary outline-none"
-                    autoFocus
-                  />
-                  <button 
-                    onClick={handleCreateTable} 
-                    className="p-2 rounded-lg transition-colors"
-                    style={{
-                      backgroundColor: currentTheme.primary,
-                      color: `${theme === 'dark' ? '#ffffff' : '#000000'} !important`
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.filter = 'brightness(1.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.filter = 'brightness(1)';
-                    }}
-                  >
-                    <Save className="w-4 h-4" style={{ color: `${theme === 'dark' ? '#ffffff' : '#000000'} !important` }} />
-                  </button>
-                  <button onClick={() => setIsCreatingTable(false)} className="p-2 bg-input hover:bg-hover rounded-lg transition-colors">
-                    <X className="w-4 h-4 text-secondary" />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setIsCreatingTable(true)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-input hover:bg-hover border border-border text-primary rounded-lg transition-all text-sm font-medium"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>New Table</span>
-                </button>
-              )}
-            </>
+            <button
+              onClick={() => setShowTableModal(true)}
+              className="flex items-center space-x-2 px-4 py-2 bg-input hover:bg-hover border border-border text-primary rounded-lg transition-all text-sm font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              <span>New Table</span>
+            </button>
           )}
         </div>
 
@@ -525,6 +494,15 @@ const PayoutsView: React.FC = () => {
           </button>
         </div>
       )}
+
+      {/* Table Creation Modal */}
+      <TableCreationModal
+        isOpen={showTableModal}
+        onClose={() => setShowTableModal(false)}
+        onSubmit={handleCreateTable}
+        title="Create New Payout Table"
+        type="payout"
+      />
     </div>
   );
 };

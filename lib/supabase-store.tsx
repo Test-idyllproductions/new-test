@@ -9,6 +9,12 @@ import {
 interface DatabaseTable {
   id: string;
   name: string;
+  description?: string;
+  budget?: number;
+  assignedUsers?: string[];
+  priority?: 'low' | 'medium' | 'high';
+  deadline?: string;
+  status?: 'active' | 'completed' | 'paused';
   created_at: string;
   updated_at: string;
   created_by: string;
@@ -60,14 +66,28 @@ interface SupabaseAppContextType extends SupabaseAppState {
   deleteUser: (id: string) => Promise<void>;
   
   // Task Management functions
-  createTaskTable: (name: string) => Promise<string>;
+  createTaskTable: (tableData: {
+    name: string;
+    description?: string;
+    budget?: number;
+    assignedUsers?: string[];
+    priority?: 'low' | 'medium' | 'high';
+    deadline?: string;
+  }) => Promise<string>;
   deleteTaskTable: (id: string) => Promise<void>;
   addTaskRecord: (tableId: string, record: Omit<TaskManagementRecord, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'>) => Promise<void>;
   updateTaskRecord: (id: string, updates: Partial<TaskManagementRecord>) => Promise<void>;
   deleteTaskRecord: (id: string) => Promise<void>;
   
   // Payout functions
-  createPayoutTable: (name: string) => Promise<string>;
+  createPayoutTable: (tableData: {
+    name: string;
+    description?: string;
+    budget?: number;
+    assignedUsers?: string[];
+    priority?: 'low' | 'medium' | 'high';
+    deadline?: string;
+  }) => Promise<string>;
   deletePayoutTable: (id: string) => Promise<void>;
   addPayoutRecord: (tableId: string, record: Omit<PayoutRecord, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'>) => Promise<void>;
   updatePayoutRecord: (id: string, updates: Partial<PayoutRecord>) => Promise<void>;
@@ -685,7 +705,14 @@ export const SupabaseAppProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   // Task Management functions
-  const createTaskTable = async (name: string): Promise<string> => {
+  const createTaskTable = async (tableData: {
+    name: string;
+    description?: string;
+    budget?: number;
+    assignedUsers?: string[];
+    priority?: 'low' | 'medium' | 'high';
+    deadline?: string;
+  }): Promise<string> => {
     if (currentUser?.role !== UserRole.MANAGER) {
       throw new Error('Only managers can create task tables');
     }
@@ -694,7 +721,13 @@ export const SupabaseAppProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const { data, error } = await supabase
         .from('task_tables')
         .insert({
-          name,
+          name: tableData.name,
+          description: tableData.description,
+          budget: tableData.budget,
+          assigned_users: tableData.assignedUsers || [],
+          priority: tableData.priority || 'medium',
+          deadline: tableData.deadline,
+          status: 'active',
           created_by: currentUser!.id
         })
         .select()
@@ -702,7 +735,7 @@ export const SupabaseAppProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
       if (error) throw error;
       
-      await logAction('CREATE', 'TASK_TABLE', undefined, name);
+      await logAction('CREATE', 'TASK_TABLE', undefined, tableData.name);
       return data.id;
     } catch (error) {
       console.error('Error creating task table:', error);
@@ -819,7 +852,14 @@ export const SupabaseAppProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   // Payout functions
-  const createPayoutTable = async (name: string): Promise<string> => {
+  const createPayoutTable = async (tableData: {
+    name: string;
+    description?: string;
+    budget?: number;
+    assignedUsers?: string[];
+    priority?: 'low' | 'medium' | 'high';
+    deadline?: string;
+  }): Promise<string> => {
     if (currentUser?.role !== UserRole.MANAGER) {
       throw new Error('Only managers can create payout tables');
     }
@@ -828,7 +868,13 @@ export const SupabaseAppProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const { data, error } = await supabase
         .from('payout_tables')
         .insert({
-          name,
+          name: tableData.name,
+          description: tableData.description,
+          budget: tableData.budget,
+          assigned_users: tableData.assignedUsers || [],
+          priority: tableData.priority || 'medium',
+          deadline: tableData.deadline,
+          status: 'active',
           created_by: currentUser!.id
         })
         .select()
@@ -836,7 +882,7 @@ export const SupabaseAppProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
       if (error) throw error;
       
-      await logAction('CREATE', 'PAYOUT_TABLE', undefined, name);
+      await logAction('CREATE', 'PAYOUT_TABLE', undefined, tableData.name);
       return data.id;
     } catch (error) {
       console.error('Error creating payout table:', error);

@@ -4,6 +4,7 @@ import { useDialog } from '../lib/dialog-context';
 import { useTheme, COLOR_THEMES } from '../lib/theme-context';
 import { UserRole, TaskStatus, TaskManagementRecord, UserStatus } from '../types';
 import { Plus, Trash2, Save, X, ExternalLink, Edit2 } from 'lucide-react';
+import TableCreationModal from '../components/TableCreationModal';
 
 const SupabaseTasksView: React.FC = () => {
   // VERSION: 2025-01-14-16:05 - FORCE RELOAD
@@ -18,8 +19,7 @@ const SupabaseTasksView: React.FC = () => {
   const isManager = currentUser?.role === UserRole.MANAGER;
   const [selectedTableId, setSelectedTableId] = useState<string>('');
   const [selectedUserId, setSelectedUserId] = useState<string>('all');
-  const [isCreatingTable, setIsCreatingTable] = useState(false);
-  const [newTableName, setNewTableName] = useState('');
+  const [showTableModal, setShowTableModal] = useState(false);
   const [editingRecords, setEditingRecords] = useState<Record<string, Partial<TaskManagementRecord>>>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
@@ -59,16 +59,20 @@ const SupabaseTasksView: React.FC = () => {
     return filtered;
   })();
 
-  const handleCreateTable = async () => {
-    if (newTableName.trim()) {
-      try {
-        const newTableId = await createTaskTable(newTableName.trim());
-        setSelectedTableId(newTableId);
-        setNewTableName('');
-        setIsCreatingTable(false);
-      } catch (error) {
-        console.error('Error creating table:', error);
-      }
+  const handleCreateTable = async (tableData: {
+    name: string;
+    description?: string;
+    budget?: number;
+    assignedUsers?: string[];
+    priority?: 'low' | 'medium' | 'high';
+    deadline?: string;
+  }) => {
+    try {
+      const newTableId = await createTaskTable(tableData);
+      setSelectedTableId(newTableId);
+    } catch (error) {
+      console.error('Error creating table:', error);
+      throw error;
     }
   };
 
@@ -210,68 +214,33 @@ const SupabaseTasksView: React.FC = () => {
           )}
 
           {isManager && (
-            <>
-              {isCreatingTable ? (
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="text"
-                    value={newTableName}
-                    onChange={(e) => setNewTableName(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleCreateTable()}
-                    placeholder="Table name..."
-                    className="bg-input border border-cyan-500 px-3 py-2 rounded-lg text-sm text-primary outline-none"
-                    autoFocus
-                  />
-                  <button 
-                    onClick={handleCreateTable} 
-                    className="p-2 rounded-lg transition-colors"
-                    style={{
-                      backgroundColor: currentTheme.primary,
-                      color: `${theme === 'dark' ? '#ffffff' : '#000000'} !important`
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.filter = 'brightness(1.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.filter = 'brightness(1)';
-                    }}
-                  >
-                    <Save className="w-4 h-4" style={{ color: `${theme === 'dark' ? '#ffffff' : '#000000'} !important` }} />
-                  </button>
-                  <button onClick={() => setIsCreatingTable(false)} className="p-2 bg-input hover:bg-hover rounded-lg transition-colors">
-                    <X className="w-4 h-4 text-secondary" />
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setIsCreatingTable(true)}
-                    className="flex items-center space-x-2 px-4 py-2 bg-input hover:bg-hover border border-border text-primary rounded-lg transition-all text-sm font-medium"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>New Table</span>
-                  </button>
-                  {selectedTable && taskTables.length > 1 && (
-                    <button
-                      onClick={async () => {
-                        if (confirm(`Delete table "${selectedTable.name}"? This will delete all tasks.`)) {
-                          try {
-                            await deleteTaskTable(selectedTableId);
-                            setSelectedTableId(taskTables.find(t => t.id !== selectedTableId)?.id || '');
-                          } catch (error) {
-                            console.error('Error deleting table:', error);
-                          }
-                        }
-                      }}
-                      className="flex items-center space-x-2 px-4 py-2 bg-red-600/10 hover:bg-red-600/20 border border-red-500/30 text-red-400 rounded-lg transition-all text-sm font-medium"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      <span>Delete Table</span>
-                    </button>
-                  )}
-                </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setShowTableModal(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-input hover:bg-hover border border-border text-primary rounded-lg transition-all text-sm font-medium"
+              >
+                <Plus className="w-4 h-4" />
+                <span>New Table</span>
+              </button>
+              {selectedTable && taskTables.length > 1 && (
+                <button
+                  onClick={async () => {
+                    if (confirm(`Delete table "${selectedTable.name}"? This will delete all tasks.`)) {
+                      try {
+                        await deleteTaskTable(selectedTableId);
+                        setSelectedTableId(taskTables.find(t => t.id !== selectedTableId)?.id || '');
+                      } catch (error) {
+                        console.error('Error deleting table:', error);
+                      }
+                    }
+                  }}
+                  className="flex items-center space-x-2 px-4 py-2 bg-red-600/10 hover:bg-red-600/20 border border-red-500/30 text-red-400 rounded-lg transition-all text-sm font-medium"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Delete Table</span>
+                </button>
               )}
-            </>
+            </div>
           )}
         </div>
 
@@ -601,6 +570,15 @@ const SupabaseTasksView: React.FC = () => {
           </button>
         </div>
       )}
+
+      {/* Table Creation Modal */}
+      <TableCreationModal
+        isOpen={showTableModal}
+        onClose={() => setShowTableModal(false)}
+        onSubmit={handleCreateTable}
+        title="Create New Task Table"
+        type="task"
+      />
     </div>
   );
 };
